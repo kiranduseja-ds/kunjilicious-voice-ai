@@ -35,7 +35,7 @@ app.post('/voice', (req, res) => {
   }
 
   res.type('text/xml');
-  res.send(twiml.toString());
+  res.send(twiml.toString())
 });
 
 // 3. Customer ka jawab yaha save hoga
