@@ -1,78 +1,53 @@
-require('dotenv').config();
 const express = require('express');
 const twilio = require('twilio');
-
 const app = express();
-app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const PORT = process.env.PORT || 3000;
+let currentQuestion = 0;
+let answers = [];
 
-// Call karne ka route
-app.post('/make-call', async (req, res) => {
-  const { phone } = req.body;
-  currentQuestion = 0; // har nayi call pe reset
-  allAnswers = []; // purane jawab delete
-
-  const call = await client.calls.create({
-    url: `https://kunjilicious-voice-ai.onrender.com/voice`,
-    to: phone,
-    from: process.env.TWILIO_PHONE_NUMBER
-  });
-  res.json({ success: true, callSid: call.sid });
-});
-
-// 5 Sawal + Radhe Radhe
-let questions = [
-  "Radhe Radhe! This is a call from Kunjilicious Technologies. How may I help you today?",
-  "What is your name?",
-  "What product or service are you interested in?",
-  "What is your budget range?",
-  "When would you like us to get back to you?"
+// 1. Yaha tumhare 5 audio ke link
+let audioLinks = [
+  "https://drive.google.com/uc?export=download&id=1EkxqPRZDZqmGWMbJkd5JdE4vAfvMzTCI", // Q1
+  "https://drive.google.com/uc?export=download&id=1B9nmt-pyDkiUqoLls_bAlLjXdXWyXOQq", // Q2
+  "https://drive.google.com/uc?export=download&id=1gcNA5Xw7zncNOhRr-xI_wJekFJ54NU6j", // Q3
+  "https://drive.google.com/uc?export=download&id=1nzycfMZrkga3S_7Z9-2gkLEf-tr7NVOf", // Q4
+  "https://drive.google.com/uc?export=download&id=1lmFZ7dRTMAq2OBBYE53Be35rZZvd2-uz" // Q5
 ];
 
-let currentQuestion = 0;
-let allAnswers = [];
-
-// Sawal poochne wala route
+// 2. Jab call aayegi ye chalega
 app.post('/voice', (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
 
-  if (currentQuestion < questions.length) {
-    const gather = twiml.gather({
-      input: 'speech', // customer bolega
+  if (currentQuestion < audioLinks.length) {
+    const gather = twiml.gather({ // <--- customer ka jawab sunega
+      input: 'speech',
       timeout: 5,
-      speechTimeout: 'auto',
       action: '/handle-answer'
     });
-    gather.say({ voice: 'alice', language: 'en-IN' }, questions[currentQuestion]);
+    gather.play(audioLinks[currentQuestion]); // <--- yaha tumhari awaaz bajegi
+    currentQuestion++;
   } else {
-    twiml.say({ voice: 'alice', language: 'en-IN' }, 'Thank you for your time. Our team will contact you soon. Radhe Radhe!');
+    twiml.say({ voice: 'alice', language: 'en-IN' }, 'Thank you. Our team will call you back soon. Radhe Radhe!');
     twiml.hangup();
+    currentQuestion = 0; // next call ke liye reset
   }
 
   res.type('text/xml');
   res.send(twiml.toString());
 });
 
-// Jawab record karne wala route
+// 3. Customer ka jawab yaha save hoga
 app.post('/handle-answer', (req, res) => {
-  const customerAnswer = req.body.SpeechResult;
-  allAnswers.push({
-    question: questions[currentQuestion],
-    answer: customerAnswer
-  });
-
-  console.log(`Q${currentQuestion + 1}: ${questions[currentQuestion]}`);
-  console.log(`Ans: ${customerAnswer}`);
-
-  currentQuestion++;
+  const speechResult = req.body.SpeechResult;
+  answers.push(speechResult);
+  console.log(`Answer ${answers.length}: ${speechResult}`);
 
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.redirect('/voice'); // next sawal pe bhej do
+  twiml.redirect('/voice'); // wapas agla sawal pe jao
   res.type('text/xml');
   res.send(twiml.toString());
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(3000, () => console.log('Server chal gaya on 3000'));
