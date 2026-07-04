@@ -1,14 +1,3 @@
-require('dotenv').config();
-const express = require('express');
-const twilio = require('twilio');
-const app = express();
-
-app.use(express.json()); // JSON body parse karne ke liye
-
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const PORT = process.env.PORT || 3000;
-
-// Ye wala route missing hai
 app.post('/make-call', async (req, res) => {
   const { phone } = req.body;
   
@@ -17,8 +6,17 @@ app.post('/make-call', async (req, res) => {
   }
 
   try {
+    // TwiML direct yahi likh denge
+    const twiml = `
+      <Response>
+        <Say voice="alice" language="en-IN">
+          Hello, this is a call from Kunjilicious Technologies
+        </Say>
+      </Response>
+    `;
+
     const call = await client.calls.create({
-      url: 'http://demo.twilio.com/docs/voice.xml', // Test ke liye Twilio ka demo
+      twiml: twiml, // url ki jagah direct twiml bhej diya
       to: phone,
       from: process.env.TWILIO_PHONE_NUMBER
     });
@@ -28,5 +26,3 @@ app.post('/make-call', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
