@@ -1,0 +1,14 @@
+{
+  "companyName": "Kunjilicious Technologies",
+  "greeting": "Hello! This is an automated call from Kunjilicious Technologies regarding your job application. I will ask you 5 quick questions. After each question, please speak your answer clearly. Let's begin.",
+  "closing": "Thank you for answering all the questions. Our HR team at Kunjilicious Technologies will review your responses and get back to you soon. Have a great day. Goodbye!",
+  "questions": [
+    "What is your full name?",
+    "Which position are you applying for?",
+    "Are you currently available for an interview this week? Please say yes or no, and mention your preferred day if possible.",
+    "How many years of relevant work experience do you have?",
+    "What is your notice period, or how soon can you join if selected?"
+  ],
+  "noInputMessage": "Sorry, I didn't catch that. Let me repeat the question.",
+  "maxRetries": 2
+}

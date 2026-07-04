@@ -1,0 +1,16 @@
+{
+  "name": "kunjilicious-voice-ai",
+  "version": "1.0.0",
+  "description": "AI voice screening caller for Kunjilicious Technologies job candidates",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "call": "node call-candidates.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
+    "twilio": "^5.2.2"
+  }
+}
