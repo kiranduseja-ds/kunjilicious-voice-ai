@@ -9,39 +9,43 @@ app.use(express.urlencoded({ extended: true }));
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const PORT = process.env.PORT || 3000;
 
-// Tere 5 sawaal
-let questions = [
-  "Radhe Radhe! Thank you for calling Kunjilicious Technologies.",
+// KUNJ REAL ESTATES - 5 QUESTIONS
+const questions = [
+  "Radhe Radhe! Thank you for calling Kunj Real Estates. We help you find your dream home.",
   "What is your full name?",
-  "Which position are you applying for?",
-  "Are you available for an interview this week?",
-  "How many years of relevant experience do you have?",
-  "What is your notice period, or when can you join?"
+  "Which area are you looking for property in? For example, Ulhasnagar, Kalyan, or Thane?",
+  "What is your budget range?",
+  "Are you looking for 1BHK, 2BHK, or a Plot?",
+  "What is the best phone number and time to contact you for site visit?",
+  "Thank you for your details. Our team from Kunj Real Estates will call you soon. Radhe Radhe!"
 ];
 
-// HAR CALL KE LIYE ALAG DATA STORE KAREGA
+// Har call ka data alag rakhega
 let sessions = {};
 
-// 1. Call start
 app.post('/make-call', async (req, res) => {
-  const { phone } = req.body;
-  const call = await client.calls.create({
-    url: `https://kunjilicious-voice-ai.onrender.com/voice?step=0`, // step 0 se start
-    to: phone,
-    from: process.env.TWILIO_PHONE_NUMBER
-  });
-  res.json({ success: true, callSid: call.sid });
+  try {
+    const { phone } = req.body;
+    const call = await client.calls.create({
+      url: `https://kunjilicious-voice-ai.onrender.com/voice?step=0`,
+      to: phone,
+      from: process.env.TWILIO_PHONE_NUMBER
+    });
+    res.json({ success: true, callSid: call.sid });
+  } catch (err) {
+    console.log("TWILIO ERROR:", err.message);
+    res.status(400).json({ error: err.message });
+  }
 });
 
-// 2. Sawaal poochna
 app.post('/voice', (req, res) => {
-  const step = parseInt(req.query.step || 0);
   const callSid = req.body.CallSid;
+  const step = parseInt(req.query.step || 0);
 
-  // Nayi call hai to session bana de
   if(!sessions[callSid]) {
     sessions[callSid] = { step: 0, answers: [] };
   }
+  sessions[callSid].step = step;
 
   const twiml = new twilio.twiml.VoiceResponse();
 
@@ -54,30 +58,27 @@ app.post('/voice', (req, res) => {
     });
     gather.say({ voice: 'alice', language: 'en-IN' }, questions[sessions[callSid].step]);
   } else {
-    twiml.say({ voice: 'alice', language: 'en-IN' }, 'Thank you for your time. We will contact you soon. Radhe Radhe!');
     twiml.hangup();
-    console.log(`CALL ${callSid} COMPLETE:`, sessions[callSid].answers);
-    delete sessions[callSid]; // call khatam to data hata de
+    console.log(`CALL DONE ${callSid}:`, sessions[callSid].answers);
+    delete sessions[callSid];
   }
 
   res.type('text/xml');
   res.send(twiml.toString());
 });
 
-// 3. Jawab save karna
 app.post('/handle-answer', (req, res) => {
-  const step = parseInt(req.query.step);
   const callSid = req.body.CallSid;
-  const customerAnswer = req.body.SpeechResult;
+  const step = parseInt(req.query.step);
+  const answer = req.body.SpeechResult || "No answer";
 
-  sessions[callSid].answers.push({ question: questions[step], answer: customerAnswer });
-  sessions[callSid].step = step + 1; // agla sawaal
-
-  console.log(`Q${step + 1}: ${questions[step]}`);
-  console.log(`Ans: ${customerAnswer}`);
+  if(sessions[callSid]) {
+    sessions[callSid].answers.push({ question: questions[step], answer: answer });
+    sessions[callSid].step = step + 1;
+  }
 
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.redirect(`/voice?step=${sessions[callSid].step}`); // agle step pe bhej
+  twiml.redirect(`/voice?step=${sessions[callSid].step}`);
   res.type('text/xml');
   res.send(twiml.toString());
 });
