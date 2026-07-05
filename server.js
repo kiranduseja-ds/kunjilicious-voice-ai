@@ -9,7 +9,6 @@ app.use(express.urlencoded({ extended: true }));
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const PORT = process.env.PORT || 3000;
 
-// KUNJ REAL ESTATES - 5 QUESTIONS
 const questions = [
   "Radhe Radhe! Thank you for calling Kunj Real Estates. We help you find your dream home.",
   "What is your full name?",
@@ -20,7 +19,6 @@ const questions = [
   "Thank you for your details. Our team from Kunj Real Estates will call you soon. Radhe Radhe!"
 ];
 
-// Har call ka data alag rakhega
 let sessions = {};
 
 app.post('/make-call', async (req, res) => {
@@ -33,7 +31,6 @@ app.post('/make-call', async (req, res) => {
     });
     res.json({ success: true, callSid: call.sid });
   } catch (err) {
-    console.log("TWILIO ERROR:", err.message);
     res.status(400).json({ error: err.message });
   }
 });
@@ -50,16 +47,21 @@ app.post('/voice', (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
 
   if (sessions[callSid].step < questions.length) {
+    // YAHI FIX HAI
     const gather = twiml.gather({
       input: 'speech',
-      timeout: 5,
-      speechTimeout: 'auto',
+      timeout: 10, // 10 sec tak wait karega
+      speechTimeout: 'auto', // bolna band karega tabhi agla sawaal
+      numSpeechResults: 1,
+      enhanced: true,
+      language: 'en-IN',
       action: `/handle-answer?step=${sessions[callSid].step}`
     });
     gather.say({ voice: 'alice', language: 'en-IN' }, questions[sessions[callSid].step]);
   } else {
+    twiml.say({ voice: 'alice', language: 'en-IN' }, questions[questions.length - 1]);
     twiml.hangup();
-    console.log(`CALL DONE ${callSid}:`, sessions[callSid].answers);
+    console.log(`CALL DONE:`, sessions[callSid].answers);
     delete sessions[callSid];
   }
 
@@ -71,6 +73,8 @@ app.post('/handle-answer', (req, res) => {
   const callSid = req.body.CallSid;
   const step = parseInt(req.query.step);
   const answer = req.body.SpeechResult || "No answer";
+
+  console.log(`Q${step}: ${answer}`); // Log me answer dikhega
 
   if(sessions[callSid]) {
     sessions[callSid].answers.push({ question: questions[step], answer: answer });
