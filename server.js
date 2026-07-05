@@ -20,14 +20,14 @@ app.post('/make-call', async (req, res) => {
   res.json({ success: true, callSid: call.sid });
 });
 
-
-// 2. Yaha 5 sawal + Radhe Radhe
+// 2. Yaha 5 naye sawaal + Radhe Radhe
 let questions = [
-  "Radhe Radhe! This is a call from Kunjilicious Technologies. How may I help you today?", // <-- Naya pehla sawal
-  "What is your name?",
-  "What product are you interested in?",
-  "What is your budget?",
-  "When do you want to start?"
+  "Radhe Radhe! Thank you for calling Kunjilicious Technologies.",
+  "What is your full name?",
+  "Which position are you applying for?",
+  "Are you available for an interview this week?",
+  "How many years of relevant experience do you have?",
+  "What is your notice period, or when can you join?"
 ];
 
 let currentQuestion = 0;
@@ -35,7 +35,7 @@ let allAnswers = []; // saare jawab save karne ke liye
 
 app.post('/voice', (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
-  
+
   if (currentQuestion < questions.length) {
     const gather = twiml.gather({
       input: 'speech',
@@ -47,23 +47,23 @@ app.post('/voice', (req, res) => {
   } else {
     twiml.say({ voice: 'alice', language: 'en-IN' }, 'Thank you for your time. We will contact you soon. Radhe Radhe!');
     twiml.hangup();
+    console.log("ALL ANSWERS:", allAnswers); // logs me saare jawab
   }
-  
+
   res.type('text/xml');
   res.send(twiml.toString());
 });
-
 
 // 3. Jawab save karna
 app.post('/handle-answer', (req, res) => {
   const customerAnswer = req.body.SpeechResult;
   allAnswers.push({ question: questions[currentQuestion], answer: customerAnswer });
-  
+
   console.log(`Q${currentQuestion + 1}: ${questions[currentQuestion]}`);
   console.log(`Ans: ${customerAnswer}`);
-  
+
   currentQuestion++;
-  
+
   const twiml = new twilio.twiml.VoiceResponse();
   twiml.redirect('/voice');
   res.type('text/xml');
