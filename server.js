@@ -19,13 +19,13 @@ const questions = [
   "Thank you for your details. Our team from Kunj Real Estates will call you soon. Radhe Radhe!"
 ];
 
-let sessions = {};
+let sessions = {}; // { CallSid: {step: 0, answers: []} }
 
 app.post('/make-call', async (req, res) => {
   try {
     const { phone } = req.body;
     const call = await client.calls.create({
-      url: `https://kunjilicious-voice-ai.onrender.com/voice?step=0`,
+      url: `https://kunjilicious-voice-ai.onrender.com/voice`, // step URL se hata diya
       to: phone,
       from: process.env.TWILIO_PHONE_NUMBER
     });
@@ -37,32 +37,31 @@ app.post('/make-call', async (req, res) => {
 
 app.post('/voice', (req, res) => {
   const callSid = req.body.CallSid;
-  const step = parseInt(req.query.step || 0);
 
+  // Nayi call hai to step 0 se start
   if(!sessions[callSid]) {
     sessions[callSid] = { step: 0, answers: [] };
   }
-  sessions[callSid].step = step;
 
+  const currentStep = sessions[callSid].step;
   const twiml = new twilio.twiml.VoiceResponse();
 
-  if (sessions[callSid].step < questions.length) {
-    // YAHI FIX HAI
+  if (currentStep < questions.length - 1) { // last wala thank you nahi hai
     const gather = twiml.gather({
       input: 'speech',
-      timeout: 10, // 10 sec tak wait karega
-      speechTimeout: 'auto', // bolna band karega tabhi agla sawaal
+      timeout: 10,
+      speechTimeout: 'auto',
       numSpeechResults: 1,
       enhanced: true,
       language: 'en-IN',
-      action: `/handle-answer?step=${sessions[callSid].step}`
+      action: `/handle-answer` // step URL se hata diya
     });
-    gather.say({ voice: 'alice', language: 'en-IN' }, questions[sessions[callSid].step]);
-  } else {
+    gather.say({ voice: 'alice', language: 'en-IN' }, questions[currentStep]);
+  } else { // last wala thank you
     twiml.say({ voice: 'alice', language: 'en-IN' }, questions[questions.length - 1]);
     twiml.hangup();
     console.log(`CALL DONE:`, sessions[callSid].answers);
-    delete sessions[callSid];
+    delete sessions[callSid]; // memory clear
   }
 
   res.type('text/xml');
@@ -71,18 +70,16 @@ app.post('/voice', (req, res) => {
 
 app.post('/handle-answer', (req, res) => {
   const callSid = req.body.CallSid;
-  const step = parseInt(req.query.step);
   const answer = req.body.SpeechResult || "No answer";
 
-  console.log(`Q${step}: ${answer}`); // Log me answer dikhega
-
   if(sessions[callSid]) {
-    sessions[callSid].answers.push({ question: questions[step], answer: answer });
-    sessions[callSid].step = step + 1;
+    sessions[callSid].answers.push({ q: questions[sessions[callSid].step], a: answer });
+    sessions[callSid].step = sessions[callSid].step + 1; // YAHI PE STEP BADHEGA
+    console.log(`Step: ${sessions[callSid].step}, Answer: ${answer}`);
   }
 
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.redirect(`/voice?step=${sessions[callSid].step}`);
+  twiml.redirect(`/voice`); // wapas voice pe bhej, waha se agla step lega
   res.type('text/xml');
   res.send(twiml.toString());
 });
